@@ -48,9 +48,9 @@ class ShortBus
 		@commands = {}
 		@servers = {}
 		@prints = {}
-		@plugin_interface.on_signal(@bus, 'CommandSignal'){ |words, words_eol, id, context| puts("Got command signal"); handle_command(words, words_eol, id, context) }
-		@plugin_interface.on_signal(@bus, 'ServerSignal'){ |words, words_eol, id, context| puts("Got server signal"); handle_server(words, words_eol, id, context) }
-		@plugin_interface.on_signal(@bus, 'PrintSignal'){ |words, id, context| puts("Got print signal"); handle_print(words, id, context) }
+		@plugin_interface.on_signal(@bus, 'CommandSignal'){ |words, words_eol, id, context| handle_command(words, words_eol, id, context) }
+		@plugin_interface.on_signal(@bus, 'ServerSignal'){ |words, words_eol, id, context| handle_server(words, words_eol, id, context) }
+		@plugin_interface.on_signal(@bus, 'PrintSignal'){ |words, id, context| handle_print(words, id, context) }
 		@plugin_interface.on_signal(@bus, 'UnloadSignal'){ puts('ShortBus: Unloading.'); exit(0); }
 
 		# Command handler for shortbus administrative stuff
