@@ -72,6 +72,11 @@ class ShortBus
 	end
 
 	# Hook up a command handler
+	# * command is the command to match
+	# * priority is the priority of the handler (XCHAT_PRI_*)
+	# * handler is a Method that will be invoked when the command is called
+	# * help is the help text to be displayed
+	# * Returns the handler id
 	def hook_command(command, priority, handler, help)
 		id = @plugin_interface.HookCommand(command, priority, help, XCHAT_EAT_ALL)[0]
 		@commands[id] = handler
@@ -79,20 +84,32 @@ class ShortBus
 		return id
 	end
 
-	def hook_server(command, priority, handler)
-		id = @plugin_interface.HookServer(command, priority, XCHAT_EAT_NONE)[0]
+	# Hook up a server event handler
+	# * server_event is the event to match
+	# * priority is the priority of the handler (XCHAT_PRI_*)
+	# * handler is a Method that will be invoked when the command is called
+	# * Returns the handler id
+	def hook_server(server_event, priority, handler)
+		id = @plugin_interface.HookServer(server_event, priority, XCHAT_EAT_NONE)[0]
 		@servers[id] = handler
 		# puts("Using id #{id} for handler #{handler}")
 		return id
 	end
 
-	def hook_print(command, priority, handler)
-		id = @plugin_interface.HookPrint(command, priority, XCHAT_EAT_NONE)[0]
+	# Hook up a print event handler
+	# * server_event is the event to match
+	# * priority is the priority of the handler (XCHAT_PRI_*)
+	# * handler is a Method that will be invoked when the command is called
+	# * Returns the handler id
+	def hook_print(print_event, priority, handler)
+		id = @plugin_interface.HookPrint(print_event, priority, XCHAT_EAT_NONE)[0]
 		@prints[id] = handler
 		# puts("Using id #{id} for handler #{handler}")
 		return id
 	end
 
+	# Unhook an event handler
+	# * id is the id of the handler to unhook
 	def unhook(id)
 		if((handlers = [@commands, @servers, @prints].detect{ |handlers| handlers[id] }))
 			@plugin_interface.Unhook(id)
@@ -100,6 +117,7 @@ class ShortBus
 		end
 	end
 
+	# Proxies a command event to a handler
 	def handle_command(words, words_eol, id, context)
 		@plugin_interface.SetContext(context)
 		
@@ -111,6 +129,7 @@ class ShortBus
 		end
 	end
 
+	# Proxies a server event to a handler
 	def handle_server(words, words_eol, id, context)
 		@plugin_interface.SetContext(context)
 		
@@ -122,6 +141,7 @@ class ShortBus
 		end
 	end
 
+	# Proxies a print event to a handler
 	def handle_print(words, id, context)
 		@plugin_interface.SetContext(context)
 		
@@ -133,6 +153,7 @@ class ShortBus
 		end
 	end
 
+	# Put a message to the xchat window if connected
 	def puts(message)
 		if(@plugin_interface)
 			@plugin_interface.Print(message)
@@ -141,14 +162,19 @@ class ShortBus
 		end
 	end
 
+	# Invoke an irc command
+	# * message is the command to be invoked, e.g. 'nick Tak'
 	def command(message)
 		return @plugin_interface.Command(message)[0]
 	end
 
+	# Get info from xchat
+	# * request is the info requested, e.g. 'nick'
 	def get_info(request)
 		return @plugin_interface.GetInfo(request)[0]
 	end
 
+	# Handles /SHORTBUS commands
 	def shortbus_handler(words, words_eol, data)
 		if(1 < words.size && words[1].strip().downcase() == 'quit') 
 			puts('ShortBus: quitting.')
@@ -157,12 +183,16 @@ class ShortBus
 		return XCHAT_EAT_ALL
 	end
 
+	# Run the main event loop
 	def run()
 		@loop = DBus::Main.new()
 		@loop << @bus
 		@loop.run()
 	end
 end # ShortBus
+
+
+# Testing stuff
 
 def printstuff(words, words_eol, data)
 	 Kernel.puts("Got #{words}")
