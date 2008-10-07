@@ -48,6 +48,8 @@ class ShortBus
 		@commands = {}
 		@servers = {}
 		@prints = {}
+		@channels = {}
+		@nicks = {}
 		@plugin_interface.on_signal(@bus, 'CommandSignal'){ |words, words_eol, id, context| handle_command(words, words_eol, id, context) }
 		@plugin_interface.on_signal(@bus, 'ServerSignal'){ |words, words_eol, id, context| handle_server(words, words_eol, id, context) }
 		@plugin_interface.on_signal(@bus, 'PrintSignal'){ |words, id, context| handle_print(words, id, context) }
@@ -119,59 +121,106 @@ class ShortBus
 
 	# Proxies a command event to a handler
 	def handle_command(words, words_eol, id, context)
-		@plugin_interface.SetContext(context)
-		
-		if((handler = @commands[id]))
-			return handler.call(words, words_eol, nil)
-		# else
-		# 	puts("No handler for id #{id}")
-		# 	puts(@commands.inspect)
+		begin
+			if((handler = @commands[id]))
+				# if(!@channels[context]) then @channels[context] = get_info('channel'); end
+				# if(!@nicks[context]) then @nicks[context] = get_info('nick'); end
+
+				# @plugin_interface.SetContext(context)
+				return handler.call(words, words_eol, nil)
+			# else
+			# 	puts("No handler for id #{id}")
+			# 	puts(@commands.inspect)
+			end
+		rescue
+			# puts($!)
 		end
+
+		return XCHAT_EAT_NONE
 	end
 
 	# Proxies a server event to a handler
 	def handle_server(words, words_eol, id, context)
-		@plugin_interface.SetContext(context)
-		
-		if((handler = @servers[id]))
-			return handler.call(words, words_eol, nil)
-		# else
-		# 	puts("No handler for id #{id}")
-		# 	puts(@commands.inspect)
+		begin
+			if((handler = @servers[id]))
+				# if(!@channels[context]) then @channels[context] = get_info('channel'); end
+				# if(!@nicks[context]) then @nicks[context] = get_info('nick'); end
+
+				# Kernel.puts([words, id, context].inspect)
+				# @plugin_interface.SetContext(context)
+				return handler.call(words, words_eol, nil)
+			# else
+			# 	puts("No handler for id #{id}")
+			# 	puts(@commands.inspect)
+			end
+		rescue
+			# puts($!)
 		end
+
+		return XCHAT_EAT_NONE
 	end
 
 	# Proxies a print event to a handler
 	def handle_print(words, id, context)
-		@plugin_interface.SetContext(context)
-		
-		if((handler = @prints[id]))
-			return handler.call(words, nil)
-		# else
-		# 	puts("No handler for id #{id}")
-		# 	puts(@commands.inspect)
+		begin
+			if((handler = @prints[id]))
+				# if(!@channels[context]) then @channels[context] = get_info('channel'); end
+				# if(!@nicks[context]) then @nicks[context] = get_info('nick'); end
+
+				# @plugin_interface.SetContext(context)
+				return handler.call(words, nil)
+			# else
+			# 	puts("No handler for id #{id}")
+			# 	puts(@commands.inspect)
+			end
+		rescue
+			# puts($!)
 		end
+
+		return XCHAT_EAT_NONE
 	end
 
 	# Put a message to the xchat window if connected
 	def puts(message)
-		if(@plugin_interface)
-			@plugin_interface.Print(message)
-		else
-			Kernel.puts(message)
+		begin
+			if(@plugin_interface)
+				@plugin_interface.Print(message)
+			else
+				Kernel.puts(message)
+			end
+		rescue
+			# puts($!)
 		end
 	end
 
 	# Invoke an irc command
 	# * message is the command to be invoked, e.g. 'nick Tak'
 	def command(message)
-		return @plugin_interface.Command(message)[0]
+		begin
+			rv = @plugin_interface.Command(message)
+			return (rv && 0 < rv.size) ? rv[0] : XCHAT_EAT_ALL
+		rescue
+			# puts($!)
+		end
+
+		return XCHAT_EAT_ALL
 	end
 
 	# Get info from xchat
 	# * request is the info requested, e.g. 'nick'
 	def get_info(request)
-		return @plugin_interface.GetInfo(request)[0]
+		begin
+			info = @plugin_interface.GetInfo(request)
+			if(info && 0 < info.size)
+				return info[0]
+			else
+				Kernel.puts("Bad response for #{request}")
+			end
+		rescue
+			# puts($!)
+		end
+		
+		return ''
 	end
 
 	# Handles /SHORTBUS commands
