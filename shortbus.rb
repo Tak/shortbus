@@ -223,6 +223,38 @@ class ShortBus
 		return ''
 	end
 
+	def list_get(listname)
+		begin
+			return @plugin_interface.ListGet(listname)
+		rescue
+		end
+	
+		return nil
+	end
+
+	def list_next(list)
+		if(!list) then return false; end
+
+		begin
+			return @plugin_interface.ListNext(list)
+		rescue
+		end
+
+		return false
+	end
+
+	def list_str(list, request)
+		if(!list) then return nil; end
+
+		begin
+			return @plugin_interface.ListStr(list, request)
+		rescue
+		end
+
+		return nil
+	end
+	
+
 	# Handles /SHORTBUS commands
 	def shortbus_handler(words, words_eol, data)
 		if(1 < words.size && words[1].strip().downcase() == 'quit') 
