@@ -1,5 +1,13 @@
 #!/usr/bin/env ruby
 
+# This program is free software; you can redistribute it and/or modify it under the terms of the GNU
+# General Public License as published by the Free Software Foundation; either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+# even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+
 require 'dbus'
 
 # Constants from xchat-plugin.h
@@ -181,12 +189,12 @@ class ShortBus
 	end
 
 	# Put a message to the xchat window if connected
-	def puts(message)
+	def puts(message, window=nil)
 		begin
 			if(@plugin_interface)
 				@plugin_interface.Print(message)
 			else
-				Kernel.puts(message)
+				Kernel.puts("#{message} (#{window})")
 			end
 		rescue
 			# puts($!)
