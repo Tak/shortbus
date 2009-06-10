@@ -75,7 +75,7 @@ class WeeBus < DBus::Object
 				ancestor.name.match(/^WeechatRubyModule\d+$/)
 			}
 			mod.create_command_handler(command)
-			success = Weechat.add_command_handler("#{command}_command_handler", WEECHAT_COMMAND_HANDLER, help)
+			success = Weechat.add_command_handler(command, "#{command}_command_handler", help)
 			if(1 == success) then @handlers << [command.upcase, WEECHAT_COMMAND_HANDLER]; end
 			[id = @handlers.size * success]
 		}# HookCommand
