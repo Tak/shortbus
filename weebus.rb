@@ -10,11 +10,15 @@
 
 require 'dbus'
 
+WEECHAT_COMMAND_HANDLER = 'weechat_command_handler'
+WEECHAT_MESSAGE_HANDLER = 'weechat_message_handler'
+
+plugins = {}
+
 class WeeBus < DBus::Object
 	@bus = DBus::SessionBus.instance
 	@service = @bus.request_service('tak.weebus')
 	@connections = {}
-	@plugins = {}
 	@index = 0
 	@handlers = []
 
@@ -27,8 +31,8 @@ class WeeBus < DBus::Object
 				path = "/tak/weebus/WeeBus#{index}"
 				@connections[name] = [filename, description, version, path]
 				index += 1
-				@plugins[name] = WeeBus.new(path)
-				@service.export(@plugins[name])
+				plugins[name] = WeeBus.new(path)
+				@service.export(plugins[name])
 				[path]
 			end
 		}# Connect
@@ -61,33 +65,34 @@ class WeeBus < DBus::Object
 		}# GetPrefs
 
 		dbus_method(:HookCommand, 'in command:s, in priority:i, in help:s, in commandreturn:i, out id:u') { |command, priority, help, commandreturn|
-			success = Weechat.add_command_handler(command, 'weechat_command_handler', help)
-			if(1 == success) then @handlers << [command, 'weechat_command_handler']; end
+			success = Weechat.add_command_handler(command, WEECHAT_COMMAND_HANDLER, help)
+			if(1 == success) then @handlers << [command.upcase, WEECHAT_COMMAND_HANDLER]; end
 			id = @handlers.size * success
 			[id]
 		}# HookCommand
 
 		dbus_method(:HookServer, 'in event:s, in priority:i, in eventreturn:i, out id:u') { |event, priority, eventreturn|
-			success = Weechat.add_message_handler(event, 'weechat_message_handler')
-			if(1 == success) then @handlers << [event, 'weechat_message_handler']; end
+			success = Weechat.add_message_handler(event, WEECHAT_MESSAGE_HANDLER)
+			if(1 == success) then @handlers << [event.upcase, WEECHAT_MESSAGE_HANDLER]; end
 			id = @handlers.size * success
 			[id]
 		}# HookServer
 
 		dbus_method(:HookPrint, 'in event:s, in priority:i, in eventreturn:i, out id:u') { |event, priority, eventreturn|
-			success = Weechat.add_message_handler(event, 'weechat_message_handler')
-			if(1 == success) then @handlers << [event, 'weechat_message_handler']; end
+			success = Weechat.add_message_handler(event, WEECHAT_MESSAGE_HANDLER)
+			if(1 == success) then @handlers << [event.upcase, WEECHAT_MESSAGE_HANDLER]; end
 			id = @handlers.size * success
 			[id]
 		}# HookPrint
 
 		dbus_method(:Unhook, 'in id:u') { |id|
-			if(@handlers && id < @handlers.size)
-				Weechat.remove_handler(@handlers[id][0], @handlers[id][1])
-				@handlers.slice!(id)
+			if(@handlers && id < @handlers.size && [] != @handlers[id])
+				success = Weechat.remove_handler(@handlers[id][0], @handlers[id][1])
+				if(1 == success) then @handlers[id] = []; end
 			end
 		}# Unhook
 
+		dbus_signal(:CommandSignal, 'words:as, words_eol:as, id:u, context:s')
 	}# tak.weebus.plugin
 
 	def initialize(path, name, filename, description, version)
@@ -100,9 +105,35 @@ class WeeBus < DBus::Object
 		@version = version
 	end # initialize
 
-end
+	def handle_command(server, args)
+		command_handlers = []
+		@handlers.each_with_index{ |handler, i|
+			command_handlers << [i, handler]
+		}
+		command_handlers = command_handlers.select{ |handler|
+			[] != handler && handler[1][0] == args[1].upcase
+		}.collect{ |handler| handler[0] }
+
+		if (0 < command_handlers.size)
+			message = "#{args[1]} #{args[2]}"
+			words = message.split(/\s/)
+			words_eol = (0..message.size-1).collect{ |i|
+				words.slice(i..-1).join(' ')
+			}
+			command_handlers.each{ |handler|
+				self.CommandSignal(words, words_eol, handler, server)
+			}
+		end
+	end # handle_command
+end # WeeBus
 
 def weechat_init()
 	Weechat.register('WeeBus', '0.1', 'weechat_finalize', 'Weechat needs help to ride the ShortBus!')
 end # weechat_init
+
+def weechat_command_handler(server, args)
+	plugins.each_value{ |plugin|
+		plugin.handle_command(server, args)
+	}
+end # weechat_command_handler
 
