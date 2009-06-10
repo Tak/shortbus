@@ -16,6 +16,7 @@ class WeeBus < DBus::Object
 	@connections = {}
 	@plugins = {}
 	@index = 0
+	@handlers = []
 
 	# Create an interface.
 	dbus_interface('tak.weebus.connection') {
@@ -43,32 +44,48 @@ class WeeBus < DBus::Object
 
 	dbus_interface('tak.weebus.plugin') {
 		dbus_method(:Command, 'in command:s') { |command|
+			Weechat.command(command)
 		}# Command
 
 		dbus_method(:Print, 'in text:s') { |text|
+			Weechat.print(text)
 		}# Print
 
 		dbus_method(:GetInfo, 'in key:s, out value:s') { |key|
-			['']
+			[Weechat.get_info(key)]
 		}# GetInfo
 
 		dbus_method(:GetPrefs, 'in key:s, out status:i, out str:s, out int:i') { |key|
-			[0, '', 0]
+			pref = Weechat.get_config(key)
+			[('' == pref) ? 0 : 1, pref, 0]
 		}# GetPrefs
 
 		dbus_method(:HookCommand, 'in command:s, in priority:i, in help:s, in commandreturn:i, out id:u') { |command, priority, help, commandreturn|
-			[0]
+			success = Weechat.add_command_handler(command, 'weechat_command_handler', help)
+			if(1 == success) then @handlers << [command, 'weechat_command_handler']; end
+			id = @handlers.size * success
+			[id]
 		}# HookCommand
 
 		dbus_method(:HookServer, 'in event:s, in priority:i, in eventreturn:i, out id:u') { |event, priority, eventreturn|
-			[0]
+			success = Weechat.add_message_handler(event, 'weechat_message_handler')
+			if(1 == success) then @handlers << [event, 'weechat_message_handler']; end
+			id = @handlers.size * success
+			[id]
 		}# HookServer
 
 		dbus_method(:HookPrint, 'in event:s, in priority:i, in eventreturn:i, out id:u') { |event, priority, eventreturn|
-			[0]
+			success = Weechat.add_message_handler(event, 'weechat_message_handler')
+			if(1 == success) then @handlers << [event, 'weechat_message_handler']; end
+			id = @handlers.size * success
+			[id]
 		}# HookPrint
 
 		dbus_method(:Unhook, 'in id:u') { |id|
+			if(@handlers && id < @handlers.size)
+				Weechat.remove_handler(@handlers[id][0], @handlers[id][1])
+				@handlers.slice!(id)
+			end
 		}# Unhook
 
 	}# tak.weebus.plugin
@@ -81,6 +98,11 @@ class WeeBus < DBus::Object
 		@filename = filename
 		@description = description
 		@version = version
-	end
+	end # initialize
 
 end
+
+def weechat_init()
+	Weechat.register('WeeBus', '0.1', 'weechat_finalize', 'Weechat needs help to ride the ShortBus!')
+end # weechat_init
+
