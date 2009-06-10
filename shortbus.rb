@@ -22,18 +22,35 @@ XCHAT_PRI_NORM = 	0
 XCHAT_PRI_LOW = 	-64
 XCHAT_PRI_LOWEST = -128
 
+BACKENDS = {
+	'xchat' => {
+		'service' => 'org.xchat.service',
+		'object' => '/org/xchat/Remote',
+		'connection_interface' => 'org.xchat.connection',
+		'plugin_interface' => 'org.xchat.plugin'
+	},
+	'weechat' => {
+		'service' => 'tak.weebus',
+		'object' => '/tak/weebus/WeeBus',
+		'connection_interface' => 'tak.weebus.connection',
+		'plugin_interface' => 'tak.weebus.plugin'
+	}
+}
+
 # ShortBus is a dbus plugin client for xchat and ruby.
 class ShortBus
-	def initialize()
+	def initialize(backend)
+		backend = (BACKENDS[backend] ? BACKENDS[backend] : BACKENDS['xchat'])
+
 		@bus = DBus::SessionBus.instance
-		@service = @bus.service('org.xchat.service')
+		@service = @bus.service(backend['service'])
 		@service.introspect()
 		# puts('== end service ==')
-		connection_object = @service.object('/org/xchat/Remote')
+		connection_object = @service.object(backend['object'])
 		connection_object.introspect()
 		# puts('== end object ==')
 
-		while(!(@connection_interface = connection_object['org.xchat.connection']))
+		while(!(@connection_interface = connection_object[backend['connection_interface']]))
 			puts('ShortBus: Sleeping')
 			sleep(0.1)
 		end
@@ -44,11 +61,11 @@ class ShortBus
 		@plugin_object = @service.object(plugin_path)
 		@plugin_object.introspect()
 		# puts('== end object ==')
-		while(!(@plugin_interface = @plugin_object['org.xchat.plugin']))
+		while(!(@plugin_interface = @plugin_object[backend['plugin_interface']]))
 			puts('ShortBus: Sleeping')
 			sleep(0.1)
 		end
-		while(!(@connection_interface = @plugin_object['org.xchat.connection']))
+		while(!(@connection_interface = @plugin_object[backend['connection_interface']]))
 			puts('ShortBus: Sleeping')
 			sleep(0.1)
 		end
