@@ -23,34 +23,40 @@ XCHAT_PRI_LOW = 	-64
 XCHAT_PRI_LOWEST = -128
 
 BACKENDS = {
-	'xchat' => {
-		'service' => 'org.xchat.service',
-		'object' => '/org/xchat/Remote',
-		'connection_interface' => 'org.xchat.connection',
-		'plugin_interface' => 'org.xchat.plugin'
+	:xchat => {
+		:service => 'org.xchat.service',
+		:object => '/org/xchat/Remote',
+		:connection_interface => 'org.xchat.connection',
+		:plugin_interface => 'org.xchat.plugin'
 	},
-	'weechat' => {
-		'service' => 'tak.weebus',
-		'object' => '/tak/weebus/WeeBus',
-		'connection_interface' => 'tak.weebus.connection',
-		'plugin_interface' => 'tak.weebus.plugin'
+	:hexchat => {
+		:service => 'org.hexchat.service',
+		:object => '/org/hexchat/Remote',
+		:connection_interface => 'org.hexchat.connection',
+		:plugin_interface => 'org.hexchat.plugin'
+	},
+	:weechat => {
+		:service => 'tak.weebus',
+		:object => '/tak/weebus/WeeBus',
+		:connection_interface => 'tak.weebus.connection',
+		:plugin_interface => 'tak.weebus.plugin'
 	}
 }
 
 # ShortBus is a dbus plugin client for xchat and ruby.
 class ShortBus
-	def initialize(backend='xchat')
-		backend = (BACKENDS[backend] ? BACKENDS[backend] : BACKENDS['xchat'])
+	def initialize(backend=:xchat)
+		backend = (BACKENDS[backend] ? BACKENDS[backend] : BACKENDS[:xchat])
 
 		@bus = DBus::SessionBus.instance
-		@service = @bus.service(backend['service'])
+		@service = @bus.service(backend[:service])
 		@service.introspect()
 		# puts('== end service ==')
-		connection_object = @service.object(backend['object'])
+		connection_object = @service.object(backend[:object])
 		connection_object.introspect()
 		# puts('== end object ==')
 
-		while(!(@connection_interface = connection_object[backend['connection_interface']]))
+		while(!(@connection_interface = connection_object[backend[:connection_interface]]))
 			puts('ShortBus: Sleeping')
 			sleep(0.1)
 		end
@@ -61,11 +67,11 @@ class ShortBus
 		@plugin_object = @service.object(plugin_path)
 		@plugin_object.introspect()
 		# puts('== end object ==')
-		while(!(@plugin_interface = @plugin_object[backend['plugin_interface']]))
+		while(!(@plugin_interface = @plugin_object[backend[:plugin_interface]]))
 			puts('ShortBus: Sleeping')
 			sleep(0.1)
 		end
-		while(!(@connection_interface = @plugin_object[backend['connection_interface']]))
+		while(!(@connection_interface = @plugin_object[backend[:connection_interface]]))
 			puts('ShortBus: Sleeping')
 			sleep(0.1)
 		end
@@ -309,7 +315,7 @@ def printprintstuff(words, data)
 end
 
 if(__FILE__ == $0)
-	blah = ShortBus.new()
+	blah = ShortBus.new(:hexchat)
 	blah.hook_command('BLAH', XCHAT_PRI_NORM, method(:printstuff), 'BLAH')
 	blah.hook_server('PRIVMSG', XCHAT_PRI_NORM, method(:printstuff))
 	blah.hook_print('Your Message', XCHAT_PRI_NORM, method(:printprintstuff))
