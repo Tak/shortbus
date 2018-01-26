@@ -45,7 +45,7 @@ BACKENDS = {
 
 # ShortBus is a dbus plugin client for xchat and ruby.
 class ShortBus
-	def initialize(backend=:xchat)
+	def initialize(backend=:hexchat)
 		backend = (BACKENDS[backend] ? BACKENDS[backend] : BACKENDS[:xchat])
 
 		@bus = DBus::SessionBus.instance
