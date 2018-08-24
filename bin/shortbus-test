@@ -1,0 +1,18 @@
+#!/usr/bin/ruby
+
+require 'shortbus'
+
+def printstuff(words, words_eol, data)
+  Kernel.puts("Got #{words}")
+end
+
+def printprintstuff(words, data)
+  Kernel.puts("Got #{words}")
+end
+
+blah = ShortBus::ShortBus.new(:hexchat)
+blah.hook_command('BLAH', ShortBus::XCHAT_PRI_NORM, method(:printstuff), 'BLAH')
+blah.hook_server('PRIVMSG', ShortBus::XCHAT_PRI_NORM, method(:printstuff))
+blah.hook_print('Your Message', ShortBus::XCHAT_PRI_NORM, method(:printprintstuff))
+puts(blah.get_info('nick').inspect)
+blah.run()
